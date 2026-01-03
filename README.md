@@ -47,7 +47,15 @@ sudo systemctl start c64u-server-switcher
 
 ### 4. Configure DNS
 
-Use the provided `dnsmasq.conf` to spoof `hackerswithstyle.se` to your server's IP address.
+You need to make `hackerswithstyle.se` resolve to your proxy server's IP. Two options:
+
+**Option A: Use your router/existing DNS server (recommended)**
+
+Add a DNS override for `hackerswithstyle.se` pointing to your proxy server's IP in your router or Pi-hole/AdGuard/etc. This way your C64U can use DHCP normally.
+
+**Option B: Use dnsmasq on the proxy server**
+
+Use the provided `dnsmasq.conf` to run DNS on the same server as the proxy.
 
 On Ubuntu/Debian systems, systemd-resolved conflicts with dnsmasq (both try to bind port 53). Fix this by pointing resolv.conf to use systemd-resolved's upstream config:
 
@@ -56,7 +64,7 @@ sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 sudo systemctl restart systemd-resolved
 ```
 
-Then configure your C64U to use your server as its DNS server.
+With this option, configure your C64U with a static IP and set DNS to your Linux server's IP.
 
 ## Usage
 
