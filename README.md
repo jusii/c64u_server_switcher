@@ -47,9 +47,16 @@ sudo systemctl start c64u-server-switcher
 
 ### 4. Configure DNS
 
-Install dnsmasq and use the provided `dnsmasq.conf` to spoof `hackerswithstyle.se` to your server's IP address.
+Use the provided `dnsmasq.conf` to spoof `hackerswithstyle.se` to your server's IP address.
 
-Configure your C64U to use your server as its DNS server.
+On Ubuntu/Debian systems, systemd-resolved conflicts with dnsmasq (both try to bind port 53). Fix this by pointing resolv.conf to use systemd-resolved's upstream config:
+
+```bash
+sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+sudo systemctl restart systemd-resolved
+```
+
+Then configure your C64U to use your server as its DNS server.
 
 ## Usage
 
