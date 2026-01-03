@@ -1,0 +1,14 @@
+[Unit]
+Description=C64U Server Switcher (mitmproxy)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/mitmdump -p 80 -s /usr/local/lib/c64u-server-switcher/c64u_server_switcher.py --mode reverse:http://185.187.254.229:80 --set block_global=false
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/log/c64u-server-switcher.log
+StandardError=append:/var/log/c64u-server-switcher.log
+
+[Install]
+WantedBy=multi-user.target
