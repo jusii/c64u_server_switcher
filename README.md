@@ -1,20 +1,27 @@
 # C64U Server Switcher
 
-DNS and mitmproxy hack to allow the new Commodore 64 Ultimate to access both Assembly64 and Commoserve sections of the server.
+DNS and mitmproxy hack to allow Commodore 64 Ultimate and Ultimate64 devices to access both Assembly64 and Commoserve sections of the server.
+
+## Supported devices
+
+| Device | Native Client-Id | Native server | This proxy gives access to |
+|--------|------------------|---------------|----------------------------|
+| Commodore 64 Ultimate (C64U) | Commodore | Commoserve | Assembly64 |
+| Ultimate64 | Ultimate | Assembly64 | Commoserve |
 
 ## How it works
 
-The new Commodore 64 Ultimate (C64U) shares the same motherboard as the Ultimate 64 but comes with its own official Commoserve server section, also hosted on `hackerswithstyle.se`. By default, the C64U only accesses the Commoserve section.
+The Commodore 64 Ultimate (C64U) and Ultimate64 share the same motherboard but access different sections of `hackerswithstyle.se` based on their `Client-Id` header:
 
-The device makes HTTP requests using simple HTTP/1.1 protocol with headers like `User-Agent: Assembly Query` and `Client-Id: Commodore`.
+- **C64U** sends `Client-Id: Commodore` → accesses Commoserve
+- **Ultimate64** sends `Client-Id: Ultimate` → accesses Assembly64
 
-This tool intercepts those requests by:
+This tool intercepts requests and patches the `Client-Id` header to access the other server:
 
-1. **DNS override** - Configure your local DNS to resolve `hackerswithstyle.se` to your proxy server's IP instead of the real server
-2. **Reverse proxy** - mitmproxy runs in reverse mode, receiving the C64U's requests and forwarding them to either Assembly64 or Commoserve backend
-3. **Server switching** - The proxy inspects search queries and switches backends based on magic keywords
-
-This allows the Commodore 64 Ultimate to access the full Assembly64 game library without modifying firmware.
+1. **DNS override** - Configure your local DNS to resolve `hackerswithstyle.se` to your proxy server's IP
+2. **Reverse proxy** - mitmproxy receives requests and forwards them to the real server
+3. **Header patching** - The proxy changes `Client-Id` based on which server you want to access
+4. **Server switching** - Search for magic keywords to switch between servers
 
 ## Requirements
 
@@ -70,7 +77,7 @@ With this option, configure your C64U with a static IP and set DNS to your Linux
 
 ### Switching between servers
 
-You can switch between Commoserve and Assembly64 directly from the C64U UI:
+You can switch between Commoserve and Assembly64 directly from the device UI by searching for magic keywords:
 
 | To access...   | Search for...  |
 |----------------|----------------|
@@ -79,7 +86,9 @@ You can switch between Commoserve and Assembly64 directly from the C64U UI:
 
 The server remembers your preference per IP address between searches.
 
-**Default:** Assembly64
+**Defaults** (gives you what you can't normally access):
+- C64U → Assembly64
+- Ultimate64 → Commoserve
 
 ### Manual run (for testing)
 
@@ -118,3 +127,8 @@ sudo systemctl restart c64u-server-switcher
 00c0   6d 6d 6f 64 6f 72 65 0d 0a 43 6f 6e 6e 65 63 74   mmodore..Connect
 00d0   69 6f 6e 3a 20 63 6c 6f 73 65 0d 0a 0d 0a         ion: close....
 ```
+
+## Changelog
+
+- Added Ultimate64 support - now both C64U and Ultimate64 can access both servers
+- Smart defaults: each device now defaults to the server it can't normally access
