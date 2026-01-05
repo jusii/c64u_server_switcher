@@ -75,12 +75,18 @@ Your C64 needs to think your Linux computer *is* the game server. Choose ONE opt
 
 If your router doesn't support DNS overrides:
 
-1. Edit `/etc/systemd/resolved.conf` and add this line:
+1. Edit `dnsmasq.conf` and change `192.168.1.100` to your Linux computer's IP address, then copy it:
+   ```bash
+   nano dnsmasq.conf
+   sudo cp dnsmasq.conf /etc/dnsmasq.d/c64u-server-switcher.conf
+   ```
+
+2. Edit `/etc/systemd/resolved.conf` and add this line:
    ```
    DNSStubListener=no
    ```
 
-2. Run these commands:
+3. Run these commands:
    ```bash
    sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
    sudo systemctl restart systemd-resolved
@@ -88,7 +94,7 @@ If your router doesn't support DNS overrides:
    sudo systemctl start dnsmasq
    ```
 
-3. On your C64, go to network settings and set:
+4. On your C64, go to network settings and set:
    - **DNS server**: Your Linux computer's IP address (e.g., 192.168.1.100)
 
 ### Step 6: Test it!
