@@ -65,7 +65,10 @@ Add a DNS override for `hackerswithstyle.se` pointing to your proxy server's IP 
 
 Use the provided `dnsmasq.conf` to run DNS on the same server as the proxy.
 
-On Ubuntu/Debian systems, systemd-resolved conflicts with dnsmasq (both try to bind port 53). Fix this by pointing resolv.conf to use systemd-resolved's upstream config:
+On Ubuntu/Debian systems, systemd-resolved conflicts with dnsmasq (both try to bind port 53). Fix this:
+
+1. Disable the DNS stub listener by adding `DNSStubListener=no` to `/etc/systemd/resolved.conf`
+2. Update the resolv.conf symlink:
 
 ```bash
 sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
