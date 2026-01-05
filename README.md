@@ -102,15 +102,13 @@ The server remembers your preference per IP address between searches.
 - C64U → Assembly64
 - Ultimate64 → Commoserve
 
+### Server indicator
+
+Search results always show "Browsing: Assembly64" or "Browsing: Commoserve" as the first item so you know which server you're currently using.
+
 ### Limitations
 
-The device caches the search menu when entering Remote mode. This means:
-
-- **Server switching works immediately** - searches and downloads use the new server right away
-- **Menu items don't update** - categories and other dropdowns reflect the server that was active at boot
-- **The `*` indicator shows boot-time server** - not the currently selected one
-
-To get updated menu items after switching servers, reboot the device or re-enter the Remote menu.
+The device caches the search menu when entering Remote mode. The `*` indicator in the Server dropdown shows the boot-time server, not the currently selected one. To update the menu indicator, reboot the device or re-enter the Remote menu.
 
 ### Manual run (for testing)
 
@@ -152,6 +150,8 @@ sudo systemctl restart c64u-server-switcher
 
 ## Changelog
 
+- Added "Browsing: {server}" indicator as first search result
+- Always return full Assembly64 menu (more options) regardless of current server
 - Added Server dropdown menu - switch servers directly from the UI without magic keywords
 - Added Ultimate64 support - now both C64U and Ultimate64 can access both servers
 - Smart defaults: each device now defaults to the server it can't normally access

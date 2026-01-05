@@ -133,6 +133,17 @@ def request(flow: http.HTTPFlow) -> None:
         log(f"HELP: Sent help response to {client_ip}")
         return
 
+    # Block requests for our fake info items (id "0" or "info")
+    # These are the "Switched to..." or "Currently browsing..." messages
+    if re.match(r'/leet/search/entries/(0|info)/', flow.request.path):
+        log(f"BLOCKED: Request for info item, returning empty")
+        flow.response = http.Response.make(
+            200,
+            json.dumps([]),
+            {"Content-Type": "application/json"}
+        )
+        return
+
     # Bot protection
     if not client_id_header and "/leet/search/" not in flow.request.path:
         log(f"BLOCKED: No Client-Id header from {client_ip}")
@@ -143,7 +154,15 @@ def request(flow: http.HTTPFlow) -> None:
     # C64U (Commodore) accessing assembly64 -> patch to Ultimate
     # Ultimate64 (Ultimate) accessing commoserve -> patch to Commodore
     original_client_id = client_id_header
-    if client_id_header == "Commodore" and server_choice == "assembly64":
+
+    # Always fetch presets with Ultimate header to get full Assembly64 menu
+    if flow.request.path == "/leet/search/aql/presets":
+        if client_id_header != "Ultimate":
+            flow.request.headers["Client-Id"] = "Ultimate"
+            log(f"PATCHED: {client_ip} Client-Id: {client_id_header} -> Ultimate (fetching full menu)")
+        else:
+            log(f"FORWARDED: {client_ip} presets request (already Ultimate)")
+    elif client_id_header == "Commodore" and server_choice == "assembly64":
         flow.request.headers["Client-Id"] = "Ultimate"
         log(f"PATCHED: {client_ip} Client-Id: Commodore -> Ultimate (accessing Assembly64)")
     elif client_id_header == "Ultimate" and server_choice == "commoserve":
@@ -175,6 +194,56 @@ def response(flow: http.HTTPFlow) -> None:
         log(f"  Content preview: {content_preview}")
     except:
         log(f"  Content preview: (binary data)")
+
+    # Inject "Currently browsing..." info item into search results
+    # Match /leet/search/aql but not /leet/search/aql/presets
+    if flow.request.path.startswith("/leet/search/aql") and not flow.request.path.startswith("/leet/search/aql/"):
+        log(f"SEARCH RESULTS: Intercepted search response for path: {flow.request.path}")
+        try:
+            data = json.loads(flow.response.content)
+            log(f"  Response type: {type(data).__name__}")
+
+            # Get current server choice for this client
+            state = load_state()
+            client_id_header = flow.request.headers.get("Client-Id")
+            server_choice = state.get(client_ip)
+
+            # Default based on device type
+            if server_choice is None:
+                if client_id_header == "Ultimate":
+                    server_choice = "commoserve"
+                else:
+                    server_choice = "assembly64"
+
+            # Create info item showing current server
+            server_display = "Assembly64" if server_choice == "assembly64" else "Commoserve"
+            info_item = {
+                "name": f"Browsing: {server_display}",
+                "id": "info",
+                "category": 0
+            }
+
+            # Handle both array and dict responses
+            if isinstance(data, list):
+                log(f"  Original results count: {len(data)}")
+                data.insert(0, info_item)
+                log(f"  After injection: {len(data)} items")
+            elif isinstance(data, dict) and "results" in data:
+                log(f"  Original results count: {len(data['results'])}")
+                data["results"].insert(0, info_item)
+                log(f"  After injection: {len(data['results'])} items")
+            else:
+                log(f"  Unknown response format, skipping injection")
+                return
+
+            # Update response
+            new_content = json.dumps(data)
+            flow.response.content = new_content.encode()
+            log(f"INJECTED: Info item into search results")
+        except json.JSONDecodeError as e:
+            log(f"ERROR: JSON decode failed for search results: {e}")
+        except Exception as e:
+            log(f"ERROR: Search results injection failed: {type(e).__name__}: {e}")
 
     if flow.request.path == "/leet/search/aql/presets":
         log(f"PRESETS: Intercepted presets response")
