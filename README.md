@@ -40,6 +40,7 @@ sudo apt install mitmproxy dnsmasq
 
 ```bash
 sudo mkdir -p /usr/local/lib/c64u-server-switcher
+sudo mkdir -p /var/lib/c64u-server-switcher
 sudo cp c64u_server_switcher.py /usr/local/lib/c64u-server-switcher/
 ```
 
@@ -77,7 +78,15 @@ With this option, configure your C64U with a static IP and set DNS to your Linux
 
 ### Switching between servers
 
-You can switch between Commoserve and Assembly64 directly from the device UI by searching for magic keywords:
+There are two ways to switch between servers:
+
+**Method 1: Server dropdown menu**
+
+The proxy injects a "Server" dropdown into the search menu. Select Assembly64 or Commoserve from the dropdown and submit your search.
+
+**Method 2: Magic keywords**
+
+Type `assembly64` or `commoserve` in the Name field and search.
 
 | To access...   | Search for...  |
 |----------------|----------------|
@@ -89,6 +98,16 @@ The server remembers your preference per IP address between searches.
 **Defaults** (gives you what you can't normally access):
 - C64U → Assembly64
 - Ultimate64 → Commoserve
+
+### Limitations
+
+The device caches the search menu when entering Remote mode. This means:
+
+- **Server switching works immediately** - searches and downloads use the new server right away
+- **Menu items don't update** - categories and other dropdowns reflect the server that was active at boot
+- **The `*` indicator shows boot-time server** - not the currently selected one
+
+To get updated menu items after switching servers, reboot the device or re-enter the Remote menu.
 
 ### Manual run (for testing)
 
@@ -130,5 +149,7 @@ sudo systemctl restart c64u-server-switcher
 
 ## Changelog
 
+- Added Server dropdown menu - switch servers directly from the UI without magic keywords
 - Added Ultimate64 support - now both C64U and Ultimate64 can access both servers
 - Smart defaults: each device now defaults to the server it can't normally access
+- Server preference is remembered per IP address
