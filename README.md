@@ -1,114 +1,157 @@
 # C64U Server Switcher
 
-DNS and mitmproxy hack to allow Commodore 64 Ultimate and Ultimate64 devices to access both Assembly64 and Commoserve sections of the server.
+Access **both** Assembly64 and Commoserve from your C64 Ultimate or Ultimate64!
 
-## Supported devices
+## What is this?
 
-| Device | Native Client-Id | Native server | This proxy gives access to |
-|--------|------------------|---------------|----------------------------|
-| Commodore 64 Ultimate (C64U) | Commodore | Commoserve | Assembly64 |
-| Ultimate64 | Ultimate | Assembly64 | Commoserve |
+The C64 Ultimate and Ultimate64 each only access one server by default:
+- **C64 Ultimate** → Commoserve only
+- **Ultimate64** → Assembly64 only
 
-## How it works
+This proxy lets you access **both servers** from either device by using a dropdown menu in the search interface.
 
-The Commodore 64 Ultimate (C64U) and Ultimate64 share the same motherboard but access different sections of `hackerswithstyle.se` based on their `Client-Id` header:
+## What you need
 
-- **C64U** sends `Client-Id: Commodore` → accesses Commoserve
-- **Ultimate64** sends `Client-Id: Ultimate` → accesses Assembly64
+- A Linux computer (Raspberry Pi works great) that stays on while you use your C64
+- Basic comfort with Linux terminal commands
 
-This tool intercepts requests and patches the `Client-Id` header to access the other server:
+## Quick Start
 
-1. **DNS override** - Configure your local DNS to resolve `hackerswithstyle.se` to your proxy server's IP
-2. **Reverse proxy** - mitmproxy receives requests and forwards them to the real server
-3. **Header patching** - The proxy changes `Client-Id` based on which server you want to access
-4. **Server switching** - Search for magic keywords to switch between servers
+### Step 1: Download the files
 
-## Requirements
-
-- mitmproxy
-- dnsmasq
-
-## Installation
-
-### 1. Install dependencies
+On your Linux computer, open a terminal and run:
 
 ```bash
+git clone https://github.com/YOUR_USERNAME/c64u_server_switcher.git
+cd c64u_server_switcher
+```
+
+### Step 2: Install required software
+
+```bash
+sudo apt update
 sudo apt install mitmproxy dnsmasq
 ```
 
-### 2. Install the script
+### Step 3: Install the proxy
+
+Copy these commands one at a time:
 
 ```bash
 sudo mkdir -p /usr/local/lib/c64u-server-switcher
 sudo mkdir -p /var/lib/c64u-server-switcher
 sudo cp c64u_server_switcher.py /usr/local/lib/c64u-server-switcher/
+sudo cp c64u-server-switcher.service /etc/systemd/system/
 ```
 
-### 3. Install the systemd service
+### Step 4: Start the proxy
 
 ```bash
-sudo cp c64u-server-switcher.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable c64u-server-switcher
 sudo systemctl start c64u-server-switcher
 ```
 
-### 4. Configure DNS
-
-You need to make `hackerswithstyle.se` resolve to your proxy server's IP. Two options:
-
-**Option A: Use your router/existing DNS server (recommended)**
-
-Add a DNS override for `hackerswithstyle.se` pointing to your proxy server's IP in your router or Pi-hole/AdGuard/etc. This way your C64U can use DHCP normally.
-
-**Option B: Use dnsmasq on the proxy server**
-
-Use the provided `dnsmasq.conf` to run DNS on the same server as the proxy.
-
-On Ubuntu/Debian systems, systemd-resolved conflicts with dnsmasq (both try to bind port 53). Fix this:
-
-1. Disable the DNS stub listener by adding `DNSStubListener=no` to `/etc/systemd/resolved.conf`
-2. Update the resolv.conf symlink:
+To verify it's running:
 
 ```bash
-sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
-sudo systemctl restart systemd-resolved
+sudo systemctl status c64u-server-switcher
 ```
 
-With this option, configure your C64U with a static IP and set DNS to your Linux server's IP.
+You should see "active (running)" in green.
 
-## Usage
+### Step 5: Set up DNS redirect
 
-### Switching between servers
+Your C64 needs to think your Linux computer *is* the game server. Choose ONE option:
 
-There are two ways to switch between servers:
+#### Option A: Router DNS override (easiest if your router supports it)
 
-**Method 1: Server dropdown menu**
+1. Log into your router's admin page (usually http://192.168.1.1)
+2. Look for "DNS settings", "DNS override", or "custom DNS entries"
+3. Add an entry: `hackerswithstyle.se` → `[your Linux computer's IP]`
+4. Your C64 can use DHCP normally - no changes needed on the device
 
-The proxy injects a "Server" dropdown into the search menu. Select Assembly64 or Commoserve from the dropdown and submit your search.
+#### Option B: Use the included DNS server
 
-**Method 2: Magic keywords**
+If your router doesn't support DNS overrides:
 
-Type `assembly64` or `commoserve` in the Name field and search.
+1. Edit `/etc/systemd/resolved.conf` and add this line:
+   ```
+   DNSStubListener=no
+   ```
 
-| To access...   | Search for...  |
-|----------------|----------------|
-| Assembly64     | `assembly64`   |
-| Commoserve     | `commoserve`   |
+2. Run these commands:
+   ```bash
+   sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+   sudo systemctl restart systemd-resolved
+   sudo systemctl enable dnsmasq
+   sudo systemctl start dnsmasq
+   ```
 
-The server remembers your preference per IP address between searches.
+3. On your C64, go to network settings and set:
+   - **DNS server**: Your Linux computer's IP address (e.g., 192.168.1.100)
 
-**Defaults** (gives you what you can't normally access):
-- C64U → Assembly64
-- Ultimate64 → Commoserve
+### Step 6: Test it!
 
-### Server indicator
+1. Turn on your C64 Ultimate or Ultimate64
+2. Go to Remote mode and open the search menu
+3. You should see a **Server** dropdown at the top!
+4. Select Assembly64 or Commoserve and search for something
 
-Search results always show "Browsing: Assembly64" or "Browsing: Commoserve" as the first item so you know which server you're currently using.
+## How to use
 
-### Limitations
+### Switching servers
 
-The device caches the search menu when entering Remote mode. The `*` indicator in the Server dropdown shows the boot-time server, not the currently selected one. To update the menu indicator, reboot the device or re-enter the Remote menu.
+Use the **Server** dropdown in the search menu to switch between Assembly64 and Commoserve.
+
+Alternatively, type `assembly64` or `commoserve` in the Name field and search.
+
+### How do I know which server I'm on?
+
+Every search result shows "Browsing: Assembly64" or "Browsing: Commoserve" as the first item.
+
+### Defaults
+
+The proxy gives you access to what you *can't* normally access:
+- **C64 Ultimate** → defaults to Assembly64
+- **Ultimate64** → defaults to Commoserve
+
+Your server choice is remembered between searches.
+
+## Troubleshooting
+
+### Proxy not running?
+
+```bash
+sudo systemctl status c64u-server-switcher
+sudo journalctl -u c64u-server-switcher -f
+```
+
+### Can't connect from C64?
+
+1. Make sure your Linux computer's IP hasn't changed
+2. Verify DNS is working: from another computer, `ping hackerswithstyle.se` should return your Linux computer's IP
+3. Check that port 80 isn't blocked by a firewall
+
+### Server dropdown not showing?
+
+The C64 caches the menu when entering Remote mode. Try rebooting your C64 or re-entering the Remote menu.
+
+## Technical details
+
+<details>
+<summary>Click to expand</summary>
+
+### How it works
+
+The C64 Ultimate sends `Client-Id: Commodore` and gets Commoserve. The Ultimate64 sends `Client-Id: Ultimate` and gets Assembly64. This proxy intercepts requests and changes the `Client-Id` header to access the other server.
+
+### Architecture
+
+1. **DNS override** - `hackerswithstyle.se` resolves to your proxy instead of the real server
+2. **Reverse proxy** - mitmproxy receives requests and forwards them to the real server
+3. **Header patching** - The proxy changes `Client-Id` based on your server selection
+4. **Menu injection** - A "Server" dropdown is injected into the search menu
 
 ### Manual run (for testing)
 
@@ -119,40 +162,18 @@ mitmdump -p 80 -s c64u_server_switcher.py --mode reverse:http://185.187.254.229:
 ### Service management
 
 ```bash
-# Check status
-sudo systemctl status c64u-server-switcher
-
-# View logs
-sudo journalctl -u c64u-server-switcher -f
-
-# Restart
-sudo systemctl restart c64u-server-switcher
+sudo systemctl status c64u-server-switcher   # Check status
+sudo journalctl -u c64u-server-switcher -f   # View logs
+sudo systemctl restart c64u-server-switcher  # Restart
 ```
 
-## Example packet capture
-
-```
-0000   0c ea 14 42 02 6f 10 20 ba 0d 1b d4 81 00 00 02   ...B.o. ........
-0010   08 00 45 00 00 cc 00 45 00 00 ff 06 3f 5d c0 a8   ..E....E....?]..
-0020   02 40 b9 bb fe e5 cc d0 00 50 00 00 19 c1 76 e5   .@.......P....v.
-0030   e6 3f 50 18 1c 84 cc 6b 00 00 47 45 54 20 2f 6c   .?P....k..GET /l
-0040   65 65 74 2f 73 65 61 72 63 68 2f 61 71 6c 2f 70   eet/search/aql/p
-0050   72 65 73 65 74 73 20 48 54 54 50 2f 31 2e 31 0d   resets HTTP/1.1.
-0060   0a 41 63 63 65 70 74 2d 65 6e 63 6f 64 69 6e 67   .Accept-encoding
-0070   3a 20 69 64 65 6e 74 69 74 79 0d 0a 48 6f 73 74   : identity..Host
-0080   3a 20 68 61 63 6b 65 72 73 77 69 74 68 73 74 79   : hackerswithsty
-0090   6c 65 2e 73 65 0d 0a 55 73 65 72 2d 41 67 65 6e   le.se..User-Agen
-00a0   74 3a 20 41 73 73 65 6d 62 6c 79 20 51 75 65 72   t: Assembly Quer
-00b0   79 0d 0a 43 6c 69 65 6e 74 2d 49 64 3a 20 43 6f   y..Client-Id: Co
-00c0   6d 6d 6f 64 6f 72 65 0d 0a 43 6f 6e 6e 65 63 74   mmodore..Connect
-00d0   69 6f 6e 3a 20 63 6c 6f 73 65 0d 0a 0d 0a         ion: close....
-```
+</details>
 
 ## Changelog
 
 - Added "Browsing: {server}" indicator as first search result
 - Always return full Assembly64 menu (more options) regardless of current server
-- Added Server dropdown menu - switch servers directly from the UI without magic keywords
-- Added Ultimate64 support - now both C64U and Ultimate64 can access both servers
-- Smart defaults: each device now defaults to the server it can't normally access
+- Added Server dropdown menu - switch servers directly from the UI
+- Added Ultimate64 support - both devices can access both servers
+- Smart defaults: each device defaults to the server it can't normally access
 - Server preference is remembered per IP address
