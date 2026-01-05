@@ -94,8 +94,14 @@ If your router doesn't support DNS overrides:
    sudo systemctl start dnsmasq
    ```
 
-4. On your C64, go to network settings and set:
-   - **DNS server**: Your Linux computer's IP address (e.g., 192.168.1.100)
+4. On your C64, go to network settings and configure a static IP:
+   - **Use DHCP**: Disabled
+   - **Static IP**: Pick an unused IP on your network (e.g., 192.168.2.64)
+   - **Static Netmask**: 255.255.255.0
+   - **Static Gateway**: Your router's IP (e.g., 192.168.2.1)
+   - **Static DNS**: Your Linux computer's IP address (e.g., 192.168.2.100)
+
+   Note: You need a static IP because you can't set a custom DNS server when using DHCP on the C64.
 
 ### Step 6: Test it!
 
